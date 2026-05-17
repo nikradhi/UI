@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laman Web Contoh - NIK RADHI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); min-height: 100vh; color: white; }
+    header { text-align: center; padding: 60px 20px 40px; }
+    header h1 { font-size: 3em; color: #53d8fb; margin-bottom: 10px; }
+    header p { font-size: 1.2em; color: #aaa; }
+    .cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; padding: 40px 20px; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 30px; width: 250px; text-align: center; transition: transform 0.3s; cursor: pointer; }
+    .card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(233,69,96,0.3); }
+    .card .icon { font-size: 3em; margin-bottom: 15px; }
+    .card h3 { font-size: 1.3em; margin-bottom: 10px; color: #53d8fb; }
+    .card p { color: #aaa; font-size: 0.95em; line-height: 1.6; }
+    .counter-section { text-align: center; padding: 40px 20px; background: rgba(255,255,255,0.03); }
+    .counter-section h2 { font-size: 2em; margin-bottom: 30px; color: #e94560; }
+    .counter-box { display: inline-flex; align-items: center; gap: 20px; background: rgba(255,255,255,0.08); padding: 20px 40px; border-radius: 50px; }
+    .count-num { font-size: 3em; font-weight: bold; color: #53d8fb; min-width: 60px; }
+    .btn { background: #e94560; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 1.5em; cursor: pointer; }
+    .btn:hover { background: #c73652; }
+    footer { text-align: center; padding: 40px; color: #555; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Laman Web Saya</h1>
+    <p>Selamat datang ke GitHub Pages pertama saya!</p>
+  </header>
+  <div class="cards">
+    <div class="card"><div class="icon">💻</div><h3>HTML</h3><p>Asas pembinaan laman web dengan struktur yang kukuh.</p></div>
+    <div class="card"><div class="icon">🎨</div><h3>CSS</h3><p>Rekabentuk yang cantik dan responsif untuk semua skrin.</p></div>
+    <div class="card"><div class="icon">⚡</div><h3>JavaScript</h3><p>Interaktiviti dan fungsi dinamik untuk pengguna.</p></div>
+    <div class="card"><div class="icon">🌐</div><h3>GitHub Pages</h3><p>Deploy laman web percuma dari GitHub repository.</p></div>
+  </div>
+  <div class="counter-section">
+    <h2>Klik Counter</h2>
+    <div class="counter-box">
+      <button class="btn" onclick="tukar(-1)">-</button>
+      <span class="count-num" id="num">0</span>
+      <button class="btn" onclick="tukar(1)">+</button>
+    </div>
+  </div>
+  <footer><p>Dibuat oleh NIK RADHI | GitHub Pages</p></footer>
+  <script>
+    let count = 0;
+    function tukar(val) { count += val; document.getElementById('num').textContent = count; }
+  </script>
+</body>
+</html>
