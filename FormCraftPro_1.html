@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FormCraft Pro - Universal Form & System Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  code, pre { font-family: 'JetBrains Mono', monospace; }
+  .canvas-area { background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+  .component-item { cursor: grab; transition: all 0.15s; }
+  .component-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .component-item:active { cursor: grabbing; }
+  .field-block { transition: all 0.2s; position: relative; }
+  .field-block.selected { outline: 2px solid #6366f1; outline-offset: 4px; }
+  .field-block:hover .field-actions { opacity: 1; }
+  .field-actions { opacity: 0; transition: opacity 0.15s; }
+  .drag-over { background-color: #eef2ff !important; border-color: #6366f1 !important; }
+  .watermark { position: fixed; bottom: 10px; right: 10px; opacity: 0.5; font-size: 11px; color: #64748b; z-index: 9999; pointer-events: none; font-weight: 600; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .tab-active { background: white; color: #6366f1; border-color: #6366f1; }
+  .preview-modal { animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .toast { animation: slideIn 0.3s; }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+</style>
+</head>
+<body class="bg-slate-100 overflow-hidden">
+
+<div class="watermark">⚡ Developed by nikradhi</div>
+
+<!-- Header -->
+<header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">F</div>
+    <div>
+      <h1 class="text-base font-bold text-slate-800">FormCraft Pro</h1>
+      <p class="text-xs text-slate-500">Universal Form & System Builder</p>
+    </div>
+  </div>
+  
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+      <button onclick="setFramework('codeigniter')" id="fw-ci" class="px-3 py-1.5 text-xs font-semibold rounded-md transition">CodeIgniter 3</button>
+      <button onclick="setFramework('laravel')" id="fw-laravel" class="px-3 py-1.5 text-xs font-semibold rounded-md transition">Laravel</button>
+    </div>
+    <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+      <button onclick="setCss('bootstrap5')" id="css-bs5" class="px-3 py-1.5 text-xs font-semibold rounded-md transition">Bootstrap 5</button>
+      <button onclick="setCss('bootstrap4')" id="css-bs4" class="px-3 py-1.5 text-xs font-semibold rounded-md transition">Bootstrap 4</button>
+      <button onclick="setCss('tailwind')" id="css-tw" class="px-3 py-1.5 text-xs font-semibold rounded-md transition">Tailwind</button>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button onclick="newProject()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1.5">
+      📄 Baru
+    </button>
+    <button onclick="importJson()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1.5">
+      📂 Import
+    </button>
+    <button onclick="exportJson()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1.5">
+      💾 Eksport JSON
+    </button>
+    <button onclick="showPreview()" class="px-3 py-2 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-lg flex items-center gap-1.5">
+      👁️ Preview
+    </button>
+    <button onclick="generateCode()" class="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg flex items-center gap-1.5 shadow-md">
+      ⚡ Generate Code
+    </button>
+  </div>
+</header>
+
+<!-- Main Layout -->
+<div class="flex h-[calc(100vh-61px)]">
+  
+  <!-- LEFT SIDEBAR: Components Library -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+    <div class="px-4 py-3 border-b border-slate-200">
+      <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Komponen</h2>
+      <p class="text-[10px] text-slate-400 mt-0.5">Drag ke canvas atau klik untuk tambah</p>
+    </div>
+    <div class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-4" id="componentLibrary">
+      <!-- Diisi oleh JS -->
+    </div>
+  </aside>
+
+  <!-- CENTER: Canvas + Pages -->
+  <main class="flex-1 flex flex-col bg-slate-50">
+    <!-- Pages Tabs -->
+    <div class="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-thin">
+      <div id="pagesTabs" class="flex items-center gap-1"></div>
+      <button onclick="addPage()" class="px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg whitespace-nowrap">+ Tambah Halaman</button>
+      <div class="flex-1"></div>
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <span id="fieldCount">0 medan</span>
+      </div>
+    </div>
+    
+    <!-- Canvas -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin canvas-area p-8">
+      <div class="max-w-3xl mx-auto">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <input type="text" id="pageTitle" placeholder="Tajuk Halaman" class="text-2xl font-bold text-slate-800 bg-transparent border-none outline-none focus:ring-0 w-full" oninput="updatePageMeta()">
+            <input type="text" id="pageDesc" placeholder="Penerangan ringkas..." class="text-sm text-slate-500 bg-transparent border-none outline-none focus:ring-0 w-full mt-1" oninput="updatePageMeta()">
+          </div>
+        </div>
+        
+        <div id="canvas" 
+             class="bg-white rounded-xl shadow-sm border-2 border-dashed border-slate-200 min-h-[500px] p-6 space-y-3"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <div id="emptyState" class="text-center py-20 text-slate-400">
+            <div class="text-5xl mb-3">🎨</div>
+            <p class="text-sm font-semibold">Mula bina borang anda</p>
+            <p class="text-xs mt-1">Drag komponen dari kiri atau klik untuk tambah</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR: Properties -->
+  <aside class="w-80 bg-white border-l border-slate-200 flex flex-col">
+    <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+      <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Properties</h2>
+      <span id="selectedLabel" class="text-[10px] text-slate-400"></span>
+    </div>
+    <div class="flex-1 overflow-y-auto scrollbar-thin p-4" id="propertiesPanel">
+      <div class="text-center py-12 text-slate-400">
+        <div class="text-4xl mb-2">⚙️</div>
+        <p class="text-xs">Pilih komponen untuk edit properties</p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="hidden fixed inset-0 bg-black/60 z-50 preview-modal">
+  <div class="absolute inset-4 bg-white rounded-2xl flex flex-col shadow-2xl">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold">👁️ Live Preview</h2>
+        <p class="text-xs text-slate-500">Pratonton borang anda dalam tema dipilih</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="previewPage" onchange="renderPreview()" class="text-xs px-3 py-2 border border-slate-200 rounded-lg"></select>
+        <button onclick="closePreview()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Tutup</button>
+      </div>
+    </div>
+    <iframe id="previewFrame" class="flex-1 w-full rounded-b-2xl border-0"></iframe>
+  </div>
+</div>
+
+<!-- Code Modal -->
+<div id="codeModal" class="hidden fixed inset-0 bg-black/60 z-50 preview-modal">
+  <div class="absolute inset-4 bg-white rounded-2xl flex flex-col shadow-2xl">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold">⚡ Generated Code</h2>
+        <p class="text-xs text-slate-500" id="codeFrameworkLabel">Framework: -</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="downloadZip()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg flex items-center gap-1.5">⬇️ Muat Turun ZIP</button>
+        <button onclick="closeCode()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Tutup</button>
+      </div>
+    </div>
+    <div class="flex-1 flex overflow-hidden">
+      <div class="w-64 bg-slate-50 border-r border-slate-200 overflow-y-auto scrollbar-thin p-2" id="fileList"></div>
+      <div class="flex-1 flex flex-col">
+        <div class="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+          <span id="currentFile" class="text-xs font-mono text-slate-600">-</span>
+          <button onclick="copyCurrentCode()" class="text-xs px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50">📋 Copy</button>
+        </div>
+        <pre id="codeView" class="flex-1 overflow-auto scrollbar-thin bg-slate-900 text-slate-100 p-4 text-xs leading-relaxed"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toastContainer" class="fixed top-20 right-4 z-[100] space-y-2"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importFile" accept=".json" class="hidden" onchange="handleImport(event)">
+
+<script>
+/* =========================================================
+   FORMCRAFT PRO - Universal Form & System Builder
+   Developed by nikradhi
+   ========================================================= */
+
+// ============ STATE ============
+let state = {
+  framework: 'codeigniter',
+  cssFramework: 'bootstrap5',
+  appName: 'Sistem Permohonan',
+  currentPageId: null,
+  selectedFieldId: null,
+  pages: []
+};
+
+let generatedFiles = {};
+let currentCodeFile = '';
+
+// ============ COMPONENT LIBRARY ============
+const COMPONENT_TYPES = {
+  // Input fields
+  text: { icon: '📝', label: 'Text Input', category: 'Input', defaults: { label: 'Text Field', name: 'text_field', placeholder: '', required: false, validation: '' }},
+  email: { icon: '📧', label: 'Email', category: 'Input', defaults: { label: 'Email', name: 'email', placeholder: 'contoh@email.com', required: true, validation: 'email' }},
+  password: { icon: '🔒', label: 'Password', category: 'Input', defaults: { label: 'Kata Laluan', name: 'password', placeholder: '', required: true, validation: 'min:8' }},
+  number: { icon: '🔢', label: 'Number', category: 'Input', defaults: { label: 'Nombor', name: 'number_field', placeholder: '0', required: false, validation: 'numeric', min: '', max: '' }},
+  tel: { icon: '📞', label: 'Telefon', category: 'Input', defaults: { label: 'No. Telefon', name: 'phone', placeholder: '012-3456789', required: false }},
+  textarea: { icon: '📄', label: 'Textarea', category: 'Input', defaults: { label: 'Penerangan', name: 'description', placeholder: '', required: false, rows: 4 }},
+  date: { icon: '📅', label: 'Tarikh', category: 'Input', defaults: { label: 'Tarikh', name: 'date_field', required: false }},
+  time: { icon: '🕐', label: 'Masa', category: 'Input', defaults: { label: 'Masa', name: 'time_field', required: false }},
+  file: { icon: '📎', label: 'File Upload', category: 'Input', defaults: { label: 'Muat Naik Fail', name: 'file_upload', required: false, accept: '*/*' }},
+  
+  // Selection
+  select: { icon: '📋', label: 'Dropdown', category: 'Pilihan', defaults: { label: 'Pilih', name: 'dropdown', required: false, options: 'Pilihan 1\nPilihan 2\nPilihan 3' }},
+  radio: { icon: '🔘', label: 'Radio Button', category: 'Pilihan', defaults: { label: 'Radio', name: 'radio_field', required: false, options: 'Lelaki\nPerempuan' }},
+  checkbox: { icon: '☑️', label: 'Checkbox', category: 'Pilihan', defaults: { label: 'Checkbox', name: 'checkbox_field', required: false, options: 'Opsyen A\nOpsyen B\nOpsyen C' }},
+  toggle: { icon: '🎚️', label: 'Toggle Switch', category: 'Pilihan', defaults: { label: 'Aktifkan', name: 'toggle_field', required: false }},
+  
+  // Layout
+  heading: { icon: '🔠', label: 'Heading', category: 'Layout', defaults: { text: 'Tajuk Bahagian', level: 'h3' }},
+  paragraph: { icon: '📃', label: 'Paragraph', category: 'Layout', defaults: { text: 'Teks penerangan di sini...' }},
+  divider: { icon: '➖', label: 'Divider', category: 'Layout', defaults: {} },
+  spacer: { icon: '⬜', label: 'Spacer', category: 'Layout', defaults: { height: '20' }},
+  
+  // Display & Action
+  button: { icon: '🔘', label: 'Button', category: 'Action', defaults: { label: 'Hantar', btnType: 'submit', style: 'primary' }},
+  alert: { icon: '⚠️', label: 'Alert Box', category: 'Display', defaults: { text: 'Mesej notis di sini', style: 'info' }},
+  modal: { icon: '🪟', label: 'Modal/Popup', category: 'Display', defaults: { title: 'Tajuk Modal', body: 'Kandungan modal...', triggerLabel: 'Buka Modal' }},
+  table: { icon: '🗂️', label: 'Data Table', category: 'Display', defaults: { columns: 'ID\nNama\nTarikh\nStatus\nTindakan', perPage: 10, withPagination: true, withSearch: true }},
+  statusBadge: { icon: '🏷️', label: 'Status Badge', category: 'Display', defaults: { label: 'Status', options: 'Baru\nDiproses\nLulus\nDitolak' }},
+  card: { icon: '🃏', label: 'Info Card', category: 'Display', defaults: { title: 'Tajuk Kad', body: 'Kandungan kad...', icon: '📊' }},
+};
+
+// ============ INIT ============
+function init() {
+  try {
+    setFramework('codeigniter');
+    setCss('bootstrap5');
+    addPage('Borang Permohonan', 'Sila isi maklumat dengan lengkap.');
+    renderComponentLibrary();
+    renderPagesTabs();
+    renderCanvas();
+    renderProperties();
+    console.log('✅ FormCraft Pro initialized successfully');
+  } catch (err) {
+    console.error('❌ Init error:', err);
+    alert('Init error: ' + err.message + '\n\nSila buka Console (F12) untuk lihat detail.');
+  }
+}
+
+// ============ FRAMEWORK / CSS ============
+function setFramework(fw) {
+  state.framework = fw;
+  ['fw-ci', 'fw-laravel'].forEach(id => document.getElementById(id).classList.remove('tab-active', 'bg-white', 'text-indigo-600', 'shadow-sm'));
+  const map = { codeigniter: 'fw-ci', laravel: 'fw-laravel' };
+  document.getElementById(map[fw]).classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+}
+
+function setCss(css) {
+  state.cssFramework = css;
+  ['css-bs5', 'css-bs4', 'css-tw'].forEach(id => document.getElementById(id).classList.remove('bg-white', 'text-indigo-600', 'shadow-sm'));
+  const map = { bootstrap5: 'css-bs5', bootstrap4: 'css-bs4', tailwind: 'css-tw' };
+  document.getElementById(map[css]).classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+}
+
+// ============ PAGES ============
+function addPage(title, desc) {
+  const id = 'page_' + Date.now();
+  state.pages.push({
+    id,
+    title: title || `Halaman ${state.pages.length + 1}`,
+    description: desc || '',
+    slug: (title || `page-${state.pages.length + 1}`).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    fields: []
+  });
+  state.currentPageId = id;
+  renderPagesTabs();
+  renderCanvas();
+  toast('✅ Halaman baru ditambah');
+}
+
+function selectPage(id) {
+  state.currentPageId = id;
+  state.selectedFieldId = null;
+  renderPagesTabs();
+  renderCanvas();
+  renderProperties();
+}
+
+function deletePage(id) {
+  if (state.pages.length <= 1) { toast('⚠️ Minimum 1 halaman diperlukan', 'warn'); return; }
+  if (!confirm('Padam halaman ini?')) return;
+  state.pages = state.pages.filter(p => p.id !== id);
+  if (state.currentPageId === id) state.currentPageId = state.pages[0].id;
+  renderPagesTabs();
+  renderCanvas();
+}
+
+function getCurrentPage() {
+  return state.pages.find(p => p.id === state.currentPageId);
+}
+
+function updatePageMeta() {
+  const page = getCurrentPage();
+  if (!page) return;
+  page.title = document.getElementById('pageTitle').value || 'Halaman';
+  page.description = document.getElementById('pageDesc').value;
+  page.slug = page.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  renderPagesTabs();
+}
+
+function renderPagesTabs() {
+  const c = document.getElementById('pagesTabs');
+  c.innerHTML = state.pages.map(p => `
+    <div class="flex items-center group">
+      <button onclick="selectPage('${p.id}')" class="px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap ${p.id === state.currentPageId ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}">
+        ${escapeHtml(p.title)}
+      </button>
+      ${state.pages.length > 1 ? `<button onclick="deletePage('${p.id}')" class="ml-0.5 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 text-xs px-1">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ============ COMPONENT LIBRARY UI ============
+function renderComponentLibrary() {
+  const categories = {};
+  Object.entries(COMPONENT_TYPES).forEach(([key, c]) => {
+    if (!categories[c.category]) categories[c.category] = [];
+    categories[c.category].push({ key, ...c });
+  });
+  
+  const container = document.getElementById('componentLibrary');
+  container.innerHTML = Object.entries(categories).map(([cat, items]) => `
+    <div>
+      <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">${cat}</h3>
+      <div class="grid grid-cols-2 gap-2">
+        ${items.map(c => `
+          <div class="component-item bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-lg p-2 text-center"
+               draggable="true"
+               ondragstart="handleDragStart(event, '${c.key}')"
+               onclick="addField('${c.key}')">
+            <div class="text-xl mb-1">${c.icon}</div>
+            <div class="text-[10px] font-semibold text-slate-700">${c.label}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============ DRAG & DROP ============
+let dragData = null;
+
+function handleDragStart(e, key) {
+  dragData = { type: 'new', key };
+  e.dataTransfer.effectAllowed = 'copy';
+}
+
+function handleFieldDragStart(e, fieldId) {
+  dragData = { type: 'move', fieldId };
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragData) return;
+  if (dragData.type === 'new') {
+    addField(dragData.key);
+  }
+  dragData = null;
+}
+
+// ============ FIELDS ============
+function addField(typeKey) {
+  const page = getCurrentPage();
+  if (!page) return;
+  const compType = COMPONENT_TYPES[typeKey];
+  if (!compType) return;
+  
+  const field = {
+    id: 'fld_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    type: typeKey,
+    ...JSON.parse(JSON.stringify(compType.defaults))
+  };
+  
+  // Make name unique
+  if (field.name) {
+    let i = 1;
+    let baseName = field.name;
+    while (page.fields.some(f => f.name === field.name)) {
+      i++;
+      field.name = baseName + '_' + i;
+    }
+  }
+  
+  page.fields.push(field);
+  state.selectedFieldId = field.id;
+  renderCanvas();
+  renderProperties();
+}
+
+function selectField(id) {
+  state.selectedFieldId = id;
+  renderCanvas();
+  renderProperties();
+}
+
+function deleteField(id) {
+  const page = getCurrentPage();
+  page.fields = page.fields.filter(f => f.id !== id);
+  if (state.selectedFieldId === id) state.selectedFieldId = null;
+  renderCanvas();
+  renderProperties();
+}
+
+function moveField(id, direction) {
+  const page = getCurrentPage();
+  const idx = page.fields.findIndex(f => f.id === id);
+  if (idx < 0) return;
+  const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (newIdx < 0 || newIdx >= page.fields.length) return;
+  [page.fields[idx], page.fields[newIdx]] = [page.fields[newIdx], page.fields[idx]];
+  renderCanvas();
+}
+
+function duplicateField(id) {
+  const page = getCurrentPage();
+  const idx = page.fields.findIndex(f => f.id === id);
+  if (idx < 0) return;
+  const copy = JSON.parse(JSON.stringify(page.fields[idx]));
+  copy.id = 'fld_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  if (copy.name) copy.name = copy.name + '_copy';
+  page.fields.splice(idx + 1, 0, copy);
+  renderCanvas();
+}
+
+// ============ CANVAS RENDER ============
+function renderCanvas() {
+  const page = getCurrentPage();
+  if (!page) return;
+  
+  document.getElementById('pageTitle').value = page.title;
+  document.getElementById('pageDesc').value = page.description;
+  document.getElementById('fieldCount').textContent = `${page.fields.length} medan`;
+  
+  const canvas = document.getElementById('canvas');
+  
+  if (page.fields.length === 0) {
+    canvas.innerHTML = `<div class="text-center py-20 text-slate-400">
+      <div class="text-5xl mb-3">🎨</div>
+      <p class="text-sm font-semibold">Mula bina borang anda</p>
+      <p class="text-xs mt-1">Drag komponen dari kiri atau klik untuk tambah</p>
+    </div>`;
+    return;
+  }
+  
+  canvas.innerHTML = page.fields.map(f => renderFieldBlock(f)).join('');
+}
+
+function renderFieldBlock(f) {
+  const selected = f.id === state.selectedFieldId ? 'selected' : '';
+  return `
+    <div class="field-block ${selected} bg-white border border-slate-200 rounded-lg p-3 hover:border-indigo-300"
+         onclick="selectField('${f.id}')"
+         draggable="true"
+         ondragstart="handleFieldDragStart(event, '${f.id}')">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded">${COMPONENT_TYPES[f.type]?.icon || ''} ${COMPONENT_TYPES[f.type]?.label || f.type}</span>
+            ${f.required ? '<span class="text-[10px] font-bold text-red-500">PERLU</span>' : ''}
+            ${f.name ? `<code class="text-[10px] text-slate-500">${escapeHtml(f.name)}</code>` : ''}
+          </div>
+          ${renderFieldPreview(f)}
+        </div>
+        <div class="field-actions flex flex-col gap-1">
+          <button onclick="event.stopPropagation(); moveField('${f.id}','up')" class="w-6 h-6 text-xs bg-slate-100 hover:bg-slate-200 rounded">↑</button>
+          <button onclick="event.stopPropagation(); moveField('${f.id}','down')" class="w-6 h-6 text-xs bg-slate-100 hover:bg-slate-200 rounded">↓</button>
+          <button onclick="event.stopPropagation(); duplicateField('${f.id}')" class="w-6 h-6 text-xs bg-slate-100 hover:bg-slate-200 rounded" title="Duplicate">⎘</button>
+          <button onclick="event.stopPropagation(); deleteField('${f.id}')" class="w-6 h-6 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded">✕</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderFieldPreview(f) {
+  switch(f.type) {
+    case 'text': case 'email': case 'password': case 'number': case 'tel':
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><input type="${f.type}" placeholder="${escapeHtml(f.placeholder||'')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded" disabled>`;
+    case 'textarea':
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><textarea rows="${f.rows||3}" placeholder="${escapeHtml(f.placeholder||'')}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded" disabled></textarea>`;
+    case 'date': case 'time':
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><input type="${f.type}" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded" disabled>`;
+    case 'file':
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><input type="file" class="w-full text-sm" disabled>`;
+    case 'select': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><select class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded" disabled><option>-- Pilih --</option>${opts.map(o=>`<option>${escapeHtml(o)}</option>`).join('')}</select>`;
+    }
+    case 'radio': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><div class="space-y-1">${opts.map(o=>`<label class="flex items-center gap-2 text-sm"><input type="radio" disabled>${escapeHtml(o)}</label>`).join('')}</div>`;
+    }
+    case 'checkbox': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}${f.required?' *':''}</label><div class="space-y-1">${opts.map(o=>`<label class="flex items-center gap-2 text-sm"><input type="checkbox" disabled>${escapeHtml(o)}</label>`).join('')}</div>`;
+    }
+    case 'toggle':
+      return `<label class="flex items-center gap-2 text-sm"><input type="checkbox" disabled> ${escapeHtml(f.label)}</label>`;
+    case 'heading':
+      return `<${f.level||'h3'} class="font-bold text-slate-800">${escapeHtml(f.text)}</${f.level||'h3'}>`;
+    case 'paragraph':
+      return `<p class="text-sm text-slate-600">${escapeHtml(f.text)}</p>`;
+    case 'divider':
+      return `<hr class="border-slate-200">`;
+    case 'spacer':
+      return `<div style="height:${f.height||20}px" class="bg-slate-50 rounded text-center text-[10px] text-slate-400">Spacer ${f.height||20}px</div>`;
+    case 'button': {
+      const styles = { primary: 'bg-indigo-500 text-white', secondary: 'bg-slate-200 text-slate-700', danger: 'bg-red-500 text-white', success: 'bg-emerald-500 text-white' };
+      return `<button class="${styles[f.style]||styles.primary} px-4 py-1.5 rounded text-sm font-semibold" disabled>${escapeHtml(f.label)}</button>`;
+    }
+    case 'alert': {
+      const styles = { info: 'bg-blue-50 border-blue-200 text-blue-800', success: 'bg-emerald-50 border-emerald-200 text-emerald-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', danger: 'bg-red-50 border-red-200 text-red-800' };
+      return `<div class="px-3 py-2 border rounded text-sm ${styles[f.style]||styles.info}">${escapeHtml(f.text)}</div>`;
+    }
+    case 'modal':
+      return `<div class="bg-slate-50 border border-slate-200 rounded p-2 text-xs"><div class="font-semibold">🪟 Modal: ${escapeHtml(f.title)}</div><div class="text-slate-500 mt-1">Trigger: "${escapeHtml(f.triggerLabel)}"</div></div>`;
+    case 'table': {
+      const cols = (f.columns||'').split('\n').filter(Boolean);
+      return `<div class="border border-slate-200 rounded overflow-hidden"><div class="bg-slate-50 px-2 py-1 text-[10px] flex justify-between"><span>${f.withSearch?'🔍 Search':''}</span><span>${f.withPagination?'📄 Pagination':''}</span></div><table class="w-full text-xs"><thead class="bg-slate-100"><tr>${cols.map(c=>`<th class="px-2 py-1 text-left">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody><tr>${cols.map(()=>`<td class="px-2 py-1 text-slate-400">—</td>`).join('')}</tr></tbody></table></div>`;
+    }
+    case 'statusBadge': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      const colors = ['bg-blue-100 text-blue-700','bg-amber-100 text-amber-700','bg-emerald-100 text-emerald-700','bg-red-100 text-red-700','bg-purple-100 text-purple-700'];
+      return `<label class="block text-xs font-medium text-slate-700 mb-1">${escapeHtml(f.label)}</label><div class="flex flex-wrap gap-1">${opts.map((o,i)=>`<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${colors[i%colors.length]}">${escapeHtml(o)}</span>`).join('')}</div>`;
+    }
+    case 'card':
+      return `<div class="border border-slate-200 rounded p-3"><div class="flex items-center gap-2"><span>${escapeHtml(f.icon||'')}</span><span class="font-bold text-sm">${escapeHtml(f.title)}</span></div><p class="text-xs text-slate-600 mt-1">${escapeHtml(f.body)}</p></div>`;
+    default:
+      return `<div class="text-xs text-slate-400">${f.type}</div>`;
+  }
+}
+
+// ============ PROPERTIES PANEL ============
+function renderProperties() {
+  const page = getCurrentPage();
+  const panel = document.getElementById('propertiesPanel');
+  const label = document.getElementById('selectedLabel');
+  
+  if (!state.selectedFieldId) {
+    label.textContent = 'Page Settings';
+    panel.innerHTML = `
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nama Aplikasi</label>
+          <input type="text" value="${escapeHtml(state.appName)}" oninput="state.appName=this.value" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+        </div>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-700">
+          💡 <b>Tip:</b> Pilih sebarang komponen pada canvas untuk edit propertinya di sini.
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+          <div class="font-bold text-slate-700">⌨️ Pintasan</div>
+          <div class="text-slate-500">• Klik komponen kiri = tambah ke canvas</div>
+          <div class="text-slate-500">• Drag komponen = letak di tempat dipilih</div>
+          <div class="text-slate-500">• Klik medan = edit properties</div>
+          <div class="text-slate-500">• ↑↓ untuk susun, ⎘ duplicate, ✕ padam</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  const field = page.fields.find(f => f.id === state.selectedFieldId);
+  if (!field) return;
+  
+  const compType = COMPONENT_TYPES[field.type];
+  label.textContent = compType.label;
+  
+  let html = `<div class="space-y-3">`;
+  html += `<div class="text-[10px] font-bold text-slate-400 uppercase">${compType.icon} ${compType.label}</div>`;
+  
+  // Common fields per type
+  if (['text','email','password','number','tel','textarea','date','time','file','select','radio','checkbox','toggle'].includes(field.type)) {
+    html += inputProp('Label', 'label', field.label);
+    html += inputProp('Name (untuk PHP)', 'name', field.name);
+  }
+  if (['text','email','password','number','tel','textarea'].includes(field.type)) {
+    html += inputProp('Placeholder', 'placeholder', field.placeholder);
+  }
+  if (field.type === 'textarea') {
+    html += inputProp('Rows', 'rows', field.rows, 'number');
+  }
+  if (field.type === 'number') {
+    html += inputProp('Min', 'min', field.min, 'number');
+    html += inputProp('Max', 'max', field.max, 'number');
+  }
+  if (field.type === 'file') {
+    html += inputProp('Accept (cth: image/*)', 'accept', field.accept);
+  }
+  if (['select','radio','checkbox','statusBadge','table'].includes(field.type)) {
+    const key = field.type === 'table' ? 'columns' : 'options';
+    const lbl = field.type === 'table' ? 'Kolum (satu per baris)' : 'Pilihan (satu per baris)';
+    html += textareaProp(lbl, key, field[key]);
+  }
+  if (['text','email','password','number','tel','textarea','date','time','file','select','radio','checkbox','toggle'].includes(field.type)) {
+    html += checkboxProp('Wajib diisi (required)', 'required', field.required);
+  }
+  if (['text','email','password','number'].includes(field.type)) {
+    html += inputProp('Custom Validation (cth: min:3|max:50)', 'validation', field.validation);
+  }
+  if (field.type === 'heading') {
+    html += inputProp('Teks', 'text', field.text);
+    html += selectProp('Level', 'level', field.level, ['h1','h2','h3','h4','h5']);
+  }
+  if (field.type === 'paragraph') {
+    html += textareaProp('Teks', 'text', field.text);
+  }
+  if (field.type === 'spacer') {
+    html += inputProp('Tinggi (px)', 'height', field.height, 'number');
+  }
+  if (field.type === 'button') {
+    html += inputProp('Label', 'label', field.label);
+    html += selectProp('Type', 'btnType', field.btnType || 'submit', ['submit','button','reset']);
+    html += selectProp('Style', 'style', field.style, ['primary','secondary','success','danger']);
+  }
+  if (field.type === 'alert') {
+    html += textareaProp('Teks', 'text', field.text);
+    html += selectProp('Style', 'style', field.style, ['info','success','warning','danger']);
+  }
+  if (field.type === 'modal') {
+    html += inputProp('Tajuk Modal', 'title', field.title);
+    html += textareaProp('Body Modal', 'body', field.body);
+    html += inputProp('Label Butang Trigger', 'triggerLabel', field.triggerLabel);
+  }
+  if (field.type === 'table') {
+    html += inputProp('Item per page', 'perPage', field.perPage, 'number');
+    html += checkboxProp('Dengan Pagination', 'withPagination', field.withPagination);
+    html += checkboxProp('Dengan Search Bar', 'withSearch', field.withSearch);
+  }
+  if (field.type === 'statusBadge') {
+    html += inputProp('Label', 'label', field.label);
+  }
+  if (field.type === 'card') {
+    html += inputProp('Icon (emoji)', 'icon', field.icon);
+    html += inputProp('Tajuk', 'title', field.title);
+    html += textareaProp('Body', 'body', field.body);
+  }
+  
+  html += `<div class="pt-3 border-t border-slate-200 flex gap-2">
+    <button onclick="duplicateField('${field.id}')" class="flex-1 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg">⎘ Duplicate</button>
+    <button onclick="deleteField('${field.id}')" class="flex-1 px-3 py-2 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">✕ Padam</button>
+  </div>`;
+  html += `</div>`;
+  panel.innerHTML = html;
+}
+
+function inputProp(label, key, value, type='text') {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-600 mb-1">${label}</label>
+    <input type="${type}" value="${escapeHtml(value||'')}" oninput="updateField('${key}', this.value)" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+  </div>`;
+}
+
+function textareaProp(label, key, value) {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-600 mb-1">${label}</label>
+    <textarea oninput="updateField('${key}', this.value)" rows="4" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-mono">${escapeHtml(value||'')}</textarea>
+  </div>`;
+}
+
+function selectProp(label, key, value, options) {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-600 mb-1">${label}</label>
+    <select onchange="updateField('${key}', this.value)" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none">
+      ${options.map(o => `<option value="${o}" ${o===value?'selected':''}>${o}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
+function checkboxProp(label, key, value) {
+  return `<label class="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
+    <input type="checkbox" ${value?'checked':''} onchange="updateField('${key}', this.checked)" class="rounded">
+    ${label}
+  </label>`;
+}
+
+function updateField(key, value) {
+  const page = getCurrentPage();
+  const field = page.fields.find(f => f.id === state.selectedFieldId);
+  if (!field) return;
+  field[key] = value;
+  renderCanvas();
+}
+
+// ============ PREVIEW ============
+function showPreview() {
+  // populate dropdown
+  const sel = document.getElementById('previewPage');
+  sel.innerHTML = state.pages.map(p => `<option value="${p.id}" ${p.id===state.currentPageId?'selected':''}>${escapeHtml(p.title)}</option>`).join('');
+  document.getElementById('previewModal').classList.remove('hidden');
+  renderPreview();
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.add('hidden');
+}
+
+function renderPreview() {
+  const pageId = document.getElementById('previewPage').value;
+  const page = state.pages.find(p => p.id === pageId);
+  if (!page) return;
+  
+  const cssCdn = state.cssFramework === 'tailwind' 
+    ? '<script src="https://cdn.tailwindcss.com"><\/script>'
+    : state.cssFramework === 'bootstrap4'
+      ? '<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet"><script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>'
+      : '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>';
+  
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${escapeHtml(page.title)}</title>${cssCdn}
+<style>body{padding:24px;background:#f8fafc;}.watermark-pv{position:fixed;bottom:8px;right:10px;font-size:10px;opacity:.5;color:#64748b;}</style>
+</head><body>
+<div class="${state.cssFramework==='tailwind'?'max-w-3xl mx-auto':'container'}" style="max-width:800px;margin:0 auto;">
+  <div class="${state.cssFramework==='tailwind'?'bg-white p-6 rounded-xl shadow':'card p-4'}">
+    <h2 class="${state.cssFramework==='tailwind'?'text-2xl font-bold mb-1':'mb-1'}">${escapeHtml(page.title)}</h2>
+    <p class="${state.cssFramework==='tailwind'?'text-slate-500 mb-4':'text-muted mb-4'}">${escapeHtml(page.description||'')}</p>
+    <form>
+      ${page.fields.map(f => renderPreviewField(f)).join('')}
+    </form>
+  </div>
+</div>
+<div class="watermark-pv">⚡ Developed by nikradhi</div>
+</body></html>`;
+  
+  const iframe = document.getElementById('previewFrame');
+  iframe.srcdoc = html;
+}
+
+function renderPreviewField(f) {
+  const isTw = state.cssFramework === 'tailwind';
+  const fg = isTw ? 'mb-4' : 'mb-3';
+  const lbl = isTw ? 'block text-sm font-medium text-slate-700 mb-1' : 'form-label fw-semibold';
+  const inp = isTw ? 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none' : 'form-control';
+  const sel = isTw ? inp : 'form-select';
+  const req = f.required ? '<span style="color:red">*</span>' : '';
+  
+  switch(f.type) {
+    case 'text': case 'email': case 'password': case 'number': case 'tel': case 'date': case 'time':
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label><input type="${f.type}" name="${escapeHtml(f.name||'')}" class="${inp}" placeholder="${escapeHtml(f.placeholder||'')}" ${f.required?'required':''}></div>`;
+    case 'textarea':
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label><textarea name="${escapeHtml(f.name||'')}" rows="${f.rows||3}" class="${inp}" placeholder="${escapeHtml(f.placeholder||'')}" ${f.required?'required':''}></textarea></div>`;
+    case 'file':
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label><input type="file" name="${escapeHtml(f.name||'')}" accept="${escapeHtml(f.accept||'*/*')}" class="${inp}" ${f.required?'required':''}></div>`;
+    case 'select': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label><select name="${escapeHtml(f.name||'')}" class="${sel}" ${f.required?'required':''}><option value="">-- Pilih --</option>${opts.map(o=>`<option>${escapeHtml(o)}</option>`).join('')}</select></div>`;
+    }
+    case 'radio': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label>${opts.map((o,i)=>`<div class="${isTw?'flex items-center gap-2':'form-check'}"><input type="radio" name="${escapeHtml(f.name||'')}" value="${escapeHtml(o)}" id="${f.name}_${i}" class="${isTw?'':'form-check-input'}"><label for="${f.name}_${i}" class="${isTw?'':'form-check-label'}">${escapeHtml(o)}</label></div>`).join('')}</div>`;
+    }
+    case 'checkbox': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)} ${req}</label>${opts.map((o,i)=>`<div class="${isTw?'flex items-center gap-2':'form-check'}"><input type="checkbox" name="${escapeHtml(f.name||'')}[]" value="${escapeHtml(o)}" id="${f.name}_${i}" class="${isTw?'':'form-check-input'}"><label for="${f.name}_${i}" class="${isTw?'':'form-check-label'}">${escapeHtml(o)}</label></div>`).join('')}</div>`;
+    }
+    case 'toggle':
+      return `<div class="${fg}"><div class="${isTw?'flex items-center gap-2':'form-check form-switch'}"><input type="checkbox" name="${escapeHtml(f.name||'')}" class="${isTw?'':'form-check-input'}" id="${f.name}_t"><label for="${f.name}_t" class="${isTw?'':'form-check-label'}">${escapeHtml(f.label)}</label></div></div>`;
+    case 'heading':
+      return `<${f.level||'h3'}>${escapeHtml(f.text)}</${f.level||'h3'}>`;
+    case 'paragraph':
+      return `<p>${escapeHtml(f.text)}</p>`;
+    case 'divider':
+      return `<hr>`;
+    case 'spacer':
+      return `<div style="height:${f.height||20}px"></div>`;
+    case 'button': {
+      const bsStyle = { primary: 'btn-primary', secondary: 'btn-secondary', success: 'btn-success', danger: 'btn-danger' };
+      const twStyle = { primary: 'bg-indigo-500 hover:bg-indigo-600 text-white', secondary: 'bg-slate-300 text-slate-800', success: 'bg-emerald-500 text-white', danger: 'bg-red-500 text-white' };
+      const cls = isTw ? `${twStyle[f.style]||twStyle.primary} px-4 py-2 rounded-lg font-semibold` : `btn ${bsStyle[f.style]||bsStyle.primary}`;
+      return `<div class="${fg}"><button type="${f.btnType||'submit'}" class="${cls}">${escapeHtml(f.label)}</button></div>`;
+    }
+    case 'alert': {
+      const bsStyle = { info: 'alert-info', success: 'alert-success', warning: 'alert-warning', danger: 'alert-danger' };
+      const twStyle = { info: 'bg-blue-50 border-blue-200 text-blue-800', success: 'bg-emerald-50 border-emerald-200 text-emerald-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', danger: 'bg-red-50 border-red-200 text-red-800' };
+      const cls = isTw ? `${twStyle[f.style]||twStyle.info} px-4 py-3 border rounded-lg mb-4` : `alert ${bsStyle[f.style]||bsStyle.info}`;
+      return `<div class="${cls}">${escapeHtml(f.text)}</div>`;
+    }
+    case 'modal': {
+      if (isTw) {
+        return `<div class="${fg}"><button type="button" onclick="document.getElementById('m_${f.id}').classList.remove('hidden')" class="bg-indigo-500 text-white px-4 py-2 rounded-lg">${escapeHtml(f.triggerLabel)}</button><div id="m_${f.id}" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center"><div class="bg-white rounded-xl p-6 max-w-md w-full"><h3 class="text-lg font-bold mb-2">${escapeHtml(f.title)}</h3><p class="text-slate-600 mb-4">${escapeHtml(f.body)}</p><button onclick="document.getElementById('m_${f.id}').classList.add('hidden')" class="bg-slate-200 px-4 py-2 rounded-lg">Tutup</button></div></div></div>`;
+      }
+      return `<div class="${fg}"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#m_${f.id}" data-toggle="modal" data-target="#m_${f.id}">${escapeHtml(f.triggerLabel)}</button><div class="modal fade" id="m_${f.id}" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">${escapeHtml(f.title)}</h5><button type="button" class="btn-close close" data-bs-dismiss="modal" data-dismiss="modal">${state.cssFramework==='bootstrap4'?'&times;':''}</button></div><div class="modal-body">${escapeHtml(f.body)}</div></div></div></div></div>`;
+    }
+    case 'table': {
+      const cols = (f.columns||'').split('\n').filter(Boolean);
+      const tbl = isTw ? 'w-full text-sm border border-slate-200' : 'table table-bordered';
+      let html = '<div class="'+fg+'">';
+      if (f.withSearch) html += `<input type="search" class="${inp} mb-2" placeholder="🔍 Cari...">`;
+      html += `<table class="${tbl}"><thead class="${isTw?'bg-slate-100':''}"><tr>${cols.map(c=>`<th class="${isTw?'px-3 py-2 text-left':''}">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>`;
+      for (let r=0; r<3; r++) html += `<tr>${cols.map((_,i)=>`<td class="${isTw?'px-3 py-2 border-t':''}">Data ${r+1}-${i+1}</td>`).join('')}</tr>`;
+      html += '</tbody></table>';
+      if (f.withPagination) {
+        html += isTw ? '<div class="flex items-center justify-between mt-2 text-sm"><span class="text-slate-500">Menunjuk 1-10 dari 100</span><div class="flex gap-1"><button class="px-3 py-1 border rounded">«</button><button class="px-3 py-1 bg-indigo-500 text-white rounded">1</button><button class="px-3 py-1 border rounded">2</button><button class="px-3 py-1 border rounded">3</button><button class="px-3 py-1 border rounded">»</button></div></div>' 
+                    : '<nav><ul class="pagination"><li class="page-item"><a class="page-link">«</a></li><li class="page-item active"><a class="page-link">1</a></li><li class="page-item"><a class="page-link">2</a></li><li class="page-item"><a class="page-link">»</a></li></ul></nav>';
+      }
+      html += '</div>';
+      return html;
+    }
+    case 'statusBadge': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      const bs = ['bg-primary','bg-warning','bg-success','bg-danger','bg-info'];
+      const tw = ['bg-blue-100 text-blue-700','bg-amber-100 text-amber-700','bg-emerald-100 text-emerald-700','bg-red-100 text-red-700','bg-purple-100 text-purple-700'];
+      return `<div class="${fg}"><label class="${lbl}">${escapeHtml(f.label)}</label><div>${opts.map((o,i)=>isTw?`<span class="${tw[i%tw.length]} px-2 py-1 rounded-full text-xs font-semibold mr-1">${escapeHtml(o)}</span>`:`<span class="badge ${bs[i%bs.length]} me-1">${escapeHtml(o)}</span>`).join('')}</div></div>`;
+    }
+    case 'card':
+      return isTw 
+        ? `<div class="${fg} border border-slate-200 rounded-xl p-4 bg-white"><div class="flex items-center gap-2 mb-2"><span class="text-2xl">${escapeHtml(f.icon||'')}</span><h4 class="font-bold">${escapeHtml(f.title)}</h4></div><p class="text-sm text-slate-600">${escapeHtml(f.body)}</p></div>`
+        : `<div class="card mb-3"><div class="card-body"><h5 class="card-title">${escapeHtml(f.icon||'')} ${escapeHtml(f.title)}</h5><p class="card-text">${escapeHtml(f.body)}</p></div></div>`;
+    default:
+      return '';
+  }
+}
+
+// ============ JSON IMPORT/EXPORT ============
+function exportJson() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  saveAs(blob, `formcraft-${Date.now()}.json`);
+  toast('💾 JSON template disimpan');
+}
+
+function importJson() {
+  document.getElementById('importFile').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      state = data;
+      if (!state.currentPageId && state.pages.length) state.currentPageId = state.pages[0].id;
+      setFramework(state.framework || 'codeigniter');
+      setCss(state.cssFramework || 'bootstrap5');
+      renderPagesTabs();
+      renderCanvas();
+      renderProperties();
+      toast('✅ Template diimport');
+    } catch(err) {
+      toast('❌ Fail JSON tidak sah', 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function newProject() {
+  if (!confirm('Mulakan projek baru? Kerja semasa akan hilang.')) return;
+  state = { framework: 'codeigniter', cssFramework: 'bootstrap5', appName: 'Sistem Permohonan', currentPageId: null, selectedFieldId: null, pages: [] };
+  addPage('Borang Permohonan', 'Sila isi maklumat dengan lengkap.');
+  setFramework('codeigniter');
+  setCss('bootstrap5');
+  renderProperties();
+  toast('🆕 Projek baru dimulakan');
+}
+
+// ============ CODE GENERATION ============
+function generateCode() {
+  generatedFiles = {};
+  if (state.framework === 'codeigniter') {
+    generateCodeIgniter();
+  } else {
+    generateLaravel();
+  }
+  showCodeModal();
+}
+
+function generateCodeIgniter() {
+  const ctrlName = pascalCase(state.appName.replace(/[^a-zA-Z0-9 ]/g,'')) || 'Sistem';
+  
+  // routes/config
+  generatedFiles[`application/config/routes.php`] = ciRoutes(ctrlName);
+  
+  // controller
+  generatedFiles[`application/controllers/${ctrlName}.php`] = ciController(ctrlName);
+  
+  // views
+  state.pages.forEach(p => {
+    generatedFiles[`application/views/${ctrlName.toLowerCase()}/${p.slug}.php`] = ciView(p);
+  });
+  generatedFiles[`application/views/layouts/main.php`] = ciLayout();
+  
+  // readme
+  generatedFiles[`README.md`] = readmeContent('CodeIgniter 3');
+}
+
+function generateLaravel() {
+  const ctrlName = pascalCase(state.appName.replace(/[^a-zA-Z0-9 ]/g,'')) || 'Sistem';
+  
+  generatedFiles[`routes/web.php`] = laravelRoutes(ctrlName);
+  generatedFiles[`app/Http/Controllers/${ctrlName}Controller.php`] = laravelController(ctrlName);
+  
+  state.pages.forEach(p => {
+    generatedFiles[`resources/views/${ctrlName.toLowerCase()}/${p.slug}.blade.php`] = laravelView(p);
+  });
+  generatedFiles[`resources/views/layouts/app.blade.php`] = laravelLayout();
+  
+  generatedFiles[`README.md`] = readmeContent('Laravel 10+');
+}
+
+// ---- CodeIgniter generators ----
+function ciRoutes(ctrl) {
+  const lines = state.pages.map((p, i) => `$route['${ctrl.toLowerCase()}/${p.slug}'] = '${ctrl}/${methodName(p.slug)}';`);
+  return `<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/* 
+ * Routes - Generated by FormCraft Pro
+ * Developed by nikradhi
+ */
+$route['default_controller'] = '${ctrl}';
+$route['${ctrl.toLowerCase()}'] = '${ctrl}/index';
+${lines.join('\n')}
+$route['404_override'] = '';
+$route['translate_uri_dashes'] = FALSE;
+`;
+}
+
+function ciController(ctrl) {
+  const methods = state.pages.map((p, i) => {
+    const m = methodName(p.slug);
+    const isFirst = i === 0;
+    return `
+    /**
+     * ${p.title}
+     */
+    public function ${m}()
+    {
+        $data = [
+            'title' => '${escPhp(p.title)}',
+            'description' => '${escPhp(p.description||'')}',
+            'success' => $this->session->flashdata('success'),
+            'error' => $this->session->flashdata('error'),
+            'form_data' => $this->session->flashdata('form_data') ?: [],
+            'errors' => $this->session->flashdata('errors') ?: []
+        ];
+        
+        if ($this->input->method() === 'post') {
+            return $this->process_${m}();
+        }
+        
+        $this->load->view('layouts/main', array_merge($data, [
+            'content_view' => '${ctrl.toLowerCase()}/${p.slug}'
+        ]));
+    }
+    
+    /**
+     * Process: ${p.title}
+     */
+    private function process_${m}()
+    {
+        // Validation rules
+        $this->load->library('form_validation');
+${generateCiValidation(p)}
+        
+        if ($this->form_validation->run() === FALSE) {
+            $this->session->set_flashdata('error', 'Sila semak semula borang.');
+            $this->session->set_flashdata('errors', $this->form_validation->error_array());
+            $this->session->set_flashdata('form_data', $this->input->post());
+            redirect('${ctrl.toLowerCase()}/${p.slug}');
+            return;
+        }
+        
+        // Collect data (NO DATABASE - UI only as per spec)
+        $data = $this->input->post();
+        
+        // TODO: Handle data sini (hantar email, simpan ke session, dll)
+        // Contoh: $this->session->set_userdata('${m}_data', $data);
+        
+        $this->session->set_flashdata('success', 'Borang berjaya dihantar!');
+        redirect('${ctrl.toLowerCase()}/${p.slug}');
+    }`;
+  }).join('\n');
+  
+  return `<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * ${ctrl} Controller
+ * 
+ * ${state.appName}
+ * Generated by FormCraft Pro
+ * Developed by nikradhi
+ */
+class ${ctrl} extends CI_Controller
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->helper(['url', 'form']);
+        $this->load->library(['session']);
+    }
+    
+    public function index()
+    {
+        redirect('${ctrl.toLowerCase()}/${state.pages[0].slug}');
+    }
+${methods}
+}
+`;
+}
+
+function generateCiValidation(page) {
+  const rules = page.fields.filter(f => f.name && (f.required || f.validation)).map(f => {
+    let r = [];
+    if (f.required) r.push('required');
+    if (f.type === 'email') r.push('valid_email');
+    if (f.type === 'number') r.push('numeric');
+    if (f.validation) r.push(f.validation);
+    if (!r.length) return null;
+    return `        $this->form_validation->set_rules('${f.name}', '${escPhp(f.label||f.name)}', '${r.join('|')}');`;
+  }).filter(Boolean);
+  return rules.join('\n') || '        // Tiada validation rules';
+}
+
+function ciView(page) {
+  const isTw = state.cssFramework === 'tailwind';
+  const isBs4 = state.cssFramework === 'bootstrap4';
+  
+  return `<?php
+/**
+ * View: ${page.title}
+ * Generated by FormCraft Pro | Developed by nikradhi
+ */
+?>
+
+<div class="${isTw?'max-w-3xl mx-auto py-6':'container py-4'}">
+    <?php if (!empty($success)): ?>
+        <div class="${isTw?'bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-4':'alert alert-success'}">
+            <?= $success ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($error)): ?>
+        <div class="${isTw?'bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4':'alert alert-danger'}">
+            <?= $error ?>
+        </div>
+    <?php endif; ?>
+    
+    <div class="${isTw?'bg-white rounded-xl shadow p-6':'card'}">
+        <div class="${isTw?'':'card-body'}">
+            <h2 class="${isTw?'text-2xl font-bold mb-1':'mb-1'}"><?= $title ?></h2>
+            <p class="${isTw?'text-slate-500 mb-4':'text-muted mb-4'}"><?= $description ?></p>
+            
+            <form method="post" action="<?= site_url(uri_string()) ?>" enctype="multipart/form-data">
+                <?= form_hidden('csrf_token', $this->security->get_csrf_hash()) ?>
+${page.fields.map(f => '                ' + generatePhpField(f, 'ci')).join('\n')}
+            </form>
+        </div>
+    </div>
+</div>
+`;
+}
+
+function ciLayout() {
+  const isTw = state.cssFramework === 'tailwind';
+  const isBs4 = state.cssFramework === 'bootstrap4';
+  const cssCdn = isTw 
+    ? '<script src="https://cdn.tailwindcss.com"><\/script>'
+    : isBs4
+      ? '<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">'
+      : '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
+  const jsCdn = isTw 
+    ? '' 
+    : isBs4 
+      ? '<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>'
+      : '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>';
+  
+  const navLinks = state.pages.map(p => 
+    `<a href="<?= site_url('${pascalCase(state.appName.replace(/[^a-zA-Z0-9 ]/g,'')).toLowerCase() || 'sistem'}/${p.slug}') ?>" class="${isTw?'px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600':'nav-link'}">${escPhp(p.title)}</a>`
+  ).join('\n            ');
+  
+  return `<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= isset($title) ? $title : '${escPhp(state.appName)}' ?></title>
+    ${cssCdn}
+    <style>
+        body { background: #f8fafc; }
+        .watermark { position: fixed; bottom: 8px; right: 10px; font-size: 11px; opacity: 0.5; color: #64748b; font-weight: 600; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <nav class="${isTw?'bg-white border-b border-slate-200 px-6 py-3':'navbar navbar-expand-lg navbar-light bg-white border-bottom'}">
+        <div class="${isTw?'max-w-7xl mx-auto flex items-center justify-between':'container'}">
+            <a href="<?= site_url() ?>" class="${isTw?'text-lg font-bold text-indigo-600':'navbar-brand fw-bold'}">${escPhp(state.appName)}</a>
+            <div class="${isTw?'flex gap-2':'navbar-nav flex-row gap-2'}">
+                ${navLinks}
+            </div>
+        </div>
+    </nav>
+    
+    <main>
+        <?php $this->load->view($content_view); ?>
+    </main>
+    
+    <div class="watermark">⚡ Developed by nikradhi</div>
+    ${jsCdn}
+</body>
+</html>
+`;
+}
+
+// ---- Laravel generators ----
+function laravelRoutes(ctrl) {
+  const lines = state.pages.map(p => `Route::match(['get','post'], '/${ctrl.toLowerCase()}/${p.slug}', [${ctrl}Controller::class, '${methodName(p.slug)}'])->name('${ctrl.toLowerCase()}.${p.slug}');`).join('\n');
+  return `<?php
+
+use Illuminate\\Support\\Facades\\Route;
+use App\\Http\\Controllers\\${ctrl}Controller;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes - Generated by FormCraft Pro
+| Developed by nikradhi
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', [${ctrl}Controller::class, 'index']);
+${lines}
+`;
+}
+
+function laravelController(ctrl) {
+  const methods = state.pages.map(p => {
+    const m = methodName(p.slug);
+    const rules = p.fields.filter(f => f.name && (f.required || f.validation)).map(f => {
+      let r = [];
+      if (f.required) r.push("'required'");
+      if (f.type === 'email') r.push("'email'");
+      if (f.type === 'number') r.push("'numeric'");
+      if (f.validation) {
+        f.validation.split('|').forEach(v => r.push(`'${v.trim()}'`));
+      }
+      return `            '${f.name}' => [${r.join(', ')}]`;
+    }).join(',\n');
+    
+    return `
+    /**
+     * ${p.title}
+     */
+    public function ${m}(Request $request)
+    {
+        if ($request->isMethod('post')) {
+            $validated = $request->validate([
+${rules}
+            ]);
+            
+            // TODO: Handle data (NO DATABASE - UI only as per spec)
+            // Contoh: session(['${m}_data' => $validated]);
+            
+            return redirect()->route('${ctrl.toLowerCase()}.${p.slug}')
+                ->with('success', 'Borang berjaya dihantar!');
+        }
+        
+        return view('${ctrl.toLowerCase()}.${p.slug}', [
+            'title' => '${escPhp(p.title)}',
+            'description' => '${escPhp(p.description||'')}',
+        ]);
+    }`;
+  }).join('\n');
+  
+  return `<?php
+
+namespace App\\Http\\Controllers;
+
+use Illuminate\\Http\\Request;
+
+/**
+ * ${ctrl} Controller
+ * 
+ * ${state.appName}
+ * Generated by FormCraft Pro
+ * Developed by nikradhi
+ */
+class ${ctrl}Controller extends Controller
+{
+    public function index()
+    {
+        return redirect()->route('${ctrl.toLowerCase()}.${state.pages[0].slug}');
+    }
+${methods}
+}
+`;
+}
+
+function laravelView(page) {
+  const isTw = state.cssFramework === 'tailwind';
+  
+  return `@extends('layouts.app')
+
+{{-- 
+  View: ${page.title}
+  Generated by FormCraft Pro | Developed by nikradhi
+--}}
+
+@section('content')
+<div class="${isTw?'max-w-3xl mx-auto py-6':'container py-4'}">
+    @if (session('success'))
+        <div class="${isTw?'bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-4':'alert alert-success'}">
+            {{ session('success') }}
+        </div>
+    @endif
+    
+    @if ($errors->any())
+        <div class="${isTw?'bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4':'alert alert-danger'}">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+    
+    <div class="${isTw?'bg-white rounded-xl shadow p-6':'card'}">
+        <div class="${isTw?'':'card-body'}">
+            <h2 class="${isTw?'text-2xl font-bold mb-1':'mb-1'}">{{ $title }}</h2>
+            <p class="${isTw?'text-slate-500 mb-4':'text-muted mb-4'}">{{ $description }}</p>
+            
+            <form method="POST" action="{{ url()->current() }}" enctype="multipart/form-data">
+                @csrf
+${page.fields.map(f => '                ' + generatePhpField(f, 'laravel')).join('\n')}
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
+`;
+}
+
+function laravelLayout() {
+  const isTw = state.cssFramework === 'tailwind';
+  const isBs4 = state.cssFramework === 'bootstrap4';
+  const cssCdn = isTw 
+    ? '<script src="https://cdn.tailwindcss.com"><\/script>'
+    : isBs4
+      ? '<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">'
+      : '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
+  const jsCdn = isTw 
+    ? '' 
+    : isBs4 
+      ? '<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"><\/script>'
+      : '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>';
+  
+  const ctrl = pascalCase(state.appName.replace(/[^a-zA-Z0-9 ]/g,'')).toLowerCase() || 'sistem';
+  const navLinks = state.pages.map(p => 
+    `<a href="{{ route('${ctrl}.${p.slug}') }}" class="${isTw?'px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600':'nav-link'}">${escPhp(p.title)}</a>`
+  ).join('\n                ');
+  
+  return `<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', '${escPhp(state.appName)}')</title>
+    ${cssCdn}
+    <style>
+        body { background: #f8fafc; }
+        .watermark { position: fixed; bottom: 8px; right: 10px; font-size: 11px; opacity: 0.5; color: #64748b; font-weight: 600; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <nav class="${isTw?'bg-white border-b border-slate-200 px-6 py-3':'navbar navbar-expand-lg navbar-light bg-white border-bottom'}">
+        <div class="${isTw?'max-w-7xl mx-auto flex items-center justify-between':'container'}">
+            <a href="/" class="${isTw?'text-lg font-bold text-indigo-600':'navbar-brand fw-bold'}">${escPhp(state.appName)}</a>
+            <div class="${isTw?'flex gap-2':'navbar-nav flex-row gap-2'}">
+                ${navLinks}
+            </div>
+        </div>
+    </nav>
+    
+    <main>
+        @yield('content')
+    </main>
+    
+    <div class="watermark">⚡ Developed by nikradhi</div>
+    ${jsCdn}
+</body>
+</html>
+`;
+}
+
+// ---- Shared PHP field generator ----
+function generatePhpField(f, framework) {
+  const isTw = state.cssFramework === 'tailwind';
+  const isBs4 = state.cssFramework === 'bootstrap4';
+  const isLv = framework === 'laravel';
+  
+  const fg = isTw ? 'mb-4' : 'mb-3';
+  const lbl = isTw ? 'block text-sm font-medium text-slate-700 mb-1' : 'form-label fw-semibold';
+  const inp = isTw ? 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none' : 'form-control';
+  const sel = isTw ? inp : 'form-select';
+  
+  // PHP value getter
+  const val = (name) => isLv ? `{{ old('${name}') }}` : `<?= set_value('${name}') ?>`;
+  const valChecked = (name, opt) => isLv ? `{{ old('${name}') == '${opt}' ? 'checked' : '' }}` : `<?= set_radio('${name}', '${opt}') ?>`;
+  const valCheckedArr = (name, opt) => isLv ? `{{ in_array('${opt}', old('${name}', [])) ? 'checked' : '' }}` : `<?= set_checkbox('${name}[]', '${opt}') ?>`;
+  const valSelected = (name, opt) => isLv ? `{{ old('${name}') == '${opt}' ? 'selected' : '' }}` : `<?= set_select('${name}', '${opt}') ?>`;
+  
+  switch(f.type) {
+    case 'text': case 'email': case 'password': case 'number': case 'tel': case 'date': case 'time':
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+                    <input type="${f.type}" name="${f.name||''}" value="${val(f.name||'')}" class="${inp}" placeholder="${escPhp(f.placeholder||'')}"${f.required?' required':''}${f.min?` min="${f.min}"`:''}${f.max?` max="${f.max}"`:''}>
+                </div>`;
+    case 'textarea':
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+                    <textarea name="${f.name||''}" rows="${f.rows||3}" class="${inp}" placeholder="${escPhp(f.placeholder||'')}"${f.required?' required':''}>${val(f.name||'')}</textarea>
+                </div>`;
+    case 'file':
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+                    <input type="file" name="${f.name||''}" accept="${f.accept||'*/*'}" class="${inp}"${f.required?' required':''}>
+                </div>`;
+    case 'select': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+                    <select name="${f.name||''}" class="${sel}"${f.required?' required':''}>
+                        <option value="">-- Pilih --</option>
+${opts.map(o => `                        <option value="${escPhp(o)}" ${valSelected(f.name||'', o)}>${escPhp(o)}</option>`).join('\n')}
+                    </select>
+                </div>`;
+    }
+    case 'radio': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+${opts.map((o,i) => `                    <div class="${isTw?'flex items-center gap-2':'form-check'}">
+                        <input type="radio" name="${f.name||''}" value="${escPhp(o)}" id="${f.name}_${i}" class="${isTw?'':'form-check-input'}" ${valChecked(f.name||'', o)}>
+                        <label for="${f.name}_${i}" class="${isTw?'':'form-check-label'}">${escPhp(o)}</label>
+                    </div>`).join('\n')}
+                </div>`;
+    }
+    case 'checkbox': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}${f.required?' <span style="color:red">*</span>':''}</label>
+${opts.map((o,i) => `                    <div class="${isTw?'flex items-center gap-2':'form-check'}">
+                        <input type="checkbox" name="${f.name||''}[]" value="${escPhp(o)}" id="${f.name}_${i}" class="${isTw?'':'form-check-input'}" ${valCheckedArr(f.name||'', o)}>
+                        <label for="${f.name}_${i}" class="${isTw?'':'form-check-label'}">${escPhp(o)}</label>
+                    </div>`).join('\n')}
+                </div>`;
+    }
+    case 'toggle':
+      return `<div class="${fg}">
+                    <div class="${isTw?'flex items-center gap-2':'form-check form-switch'}">
+                        <input type="checkbox" name="${f.name||''}" value="1" id="${f.name}_t" class="${isTw?'':'form-check-input'}" ${isLv?`{{ old('${f.name||''}') ? 'checked' : '' }}`:`<?= set_checkbox('${f.name||''}', '1') ?>`}>
+                        <label for="${f.name}_t" class="${isTw?'':'form-check-label'}">${escPhp(f.label||'')}</label>
+                    </div>
+                </div>`;
+    case 'heading':
+      return `<${f.level||'h3'} class="${isTw?'text-xl font-bold mt-4 mb-2':''}">${escPhp(f.text||'')}</${f.level||'h3'}>`;
+    case 'paragraph':
+      return `<p class="${isTw?'text-sm text-slate-600 mb-3':'text-muted'}">${escPhp(f.text||'')}</p>`;
+    case 'divider':
+      return `<hr class="${isTw?'my-4 border-slate-200':''}">`;
+    case 'spacer':
+      return `<div style="height: ${f.height||20}px"></div>`;
+    case 'button': {
+      const bsStyle = { primary: 'btn-primary', secondary: 'btn-secondary', success: 'btn-success', danger: 'btn-danger' };
+      const twStyle = { primary: 'bg-indigo-500 hover:bg-indigo-600 text-white', secondary: 'bg-slate-300 text-slate-800', success: 'bg-emerald-500 text-white', danger: 'bg-red-500 text-white' };
+      const cls = isTw ? `${twStyle[f.style]||twStyle.primary} px-4 py-2 rounded-lg font-semibold` : `btn ${bsStyle[f.style]||bsStyle.primary}`;
+      const t = f.btnType || 'submit';
+      return `<div class="${fg}">
+                    <button type="${t}" class="${cls}">${escPhp(f.label||'Submit')}</button>
+                </div>`;
+    }
+    case 'alert': {
+      const bsStyle = { info: 'alert-info', success: 'alert-success', warning: 'alert-warning', danger: 'alert-danger' };
+      const twStyle = { info: 'bg-blue-50 border-blue-200 text-blue-800', success: 'bg-emerald-50 border-emerald-200 text-emerald-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', danger: 'bg-red-50 border-red-200 text-red-800' };
+      const cls = isTw ? `${twStyle[f.style]||twStyle.info} px-4 py-3 border rounded-lg mb-4` : `alert ${bsStyle[f.style]||bsStyle.info}`;
+      return `<div class="${cls}">${escPhp(f.text||'')}</div>`;
+    }
+    case 'modal': {
+      const modalId = 'modal_' + (f.id || Math.random().toString(36).substr(2,5));
+      if (isTw) {
+        return `<div class="${fg}">
+                    <button type="button" onclick="document.getElementById('${modalId}').classList.remove('hidden')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">${escPhp(f.triggerLabel||'Buka')}</button>
+                    <div id="${modalId}" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                            <h3 class="text-lg font-bold mb-2">${escPhp(f.title||'')}</h3>
+                            <p class="text-slate-600 mb-4">${escPhp(f.body||'')}</p>
+                            <button type="button" onclick="document.getElementById('${modalId}').classList.add('hidden')" class="bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-lg">Tutup</button>
+                        </div>
+                    </div>
+                </div>`;
+      }
+      const bs4Attr = isBs4 ? 'data-toggle="modal" data-target' : 'data-bs-toggle="modal" data-bs-target';
+      const bs4Close = isBs4 ? 'data-dismiss="modal"' : 'data-bs-dismiss="modal"';
+      return `<div class="${fg}">
+                    <button type="button" class="btn btn-primary" ${bs4Attr}="#${modalId}">${escPhp(f.triggerLabel||'Buka')}</button>
+                    <div class="modal fade" id="${modalId}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">${escPhp(f.title||'')}</h5>
+                                    <button type="button" class="${isBs4?'close':'btn-close'}" ${bs4Close}>${isBs4?'<span>&times;</span>':''}</button>
+                                </div>
+                                <div class="modal-body">${escPhp(f.body||'')}</div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" ${bs4Close}>Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+    }
+    case 'table': {
+      const cols = (f.columns||'').split('\n').filter(Boolean);
+      const tbl = isTw ? 'w-full text-sm border border-slate-200' : 'table table-bordered table-hover';
+      let html = `<div class="${fg}">`;
+      if (f.withSearch) html += `\n                    <input type="search" class="${inp} mb-2" placeholder="🔍 Cari...">`;
+      html += `\n                    <div class="${isTw?'overflow-x-auto':'table-responsive'}">
+                        <table class="${tbl}">
+                            <thead class="${isTw?'bg-slate-100':'table-light'}">
+                                <tr>
+${cols.map(c => `                                    <th class="${isTw?'px-3 py-2 text-left':''}">${escPhp(c)}</th>`).join('\n')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- TODO: Loop data anda di sini -->
+                                <tr>
+${cols.map(() => `                                    <td class="${isTw?'px-3 py-2 border-t':''}">—</td>`).join('\n')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>`;
+      if (f.withPagination) {
+        html += isTw
+          ? `\n                    <div class="flex items-center justify-between mt-2 text-sm">
+                        <span class="text-slate-500">Menunjuk 1-${f.perPage||10} dari N</span>
+                        <div class="flex gap-1">
+                            <button class="px-3 py-1 border rounded">«</button>
+                            <button class="px-3 py-1 bg-indigo-500 text-white rounded">1</button>
+                            <button class="px-3 py-1 border rounded">2</button>
+                            <button class="px-3 py-1 border rounded">»</button>
+                        </div>
+                    </div>`
+          : `\n                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item"><a class="page-link" href="#">«</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">»</a></li>
+                        </ul>
+                    </nav>`;
+      }
+      html += `\n                </div>`;
+      return html;
+    }
+    case 'statusBadge': {
+      const opts = (f.options||'').split('\n').filter(Boolean);
+      const bs = ['bg-primary','bg-warning','bg-success','bg-danger','bg-info'];
+      const tw = ['bg-blue-100 text-blue-700','bg-amber-100 text-amber-700','bg-emerald-100 text-emerald-700','bg-red-100 text-red-700','bg-purple-100 text-purple-700'];
+      return `<div class="${fg}">
+                    <label class="${lbl}">${escPhp(f.label||'')}</label>
+                    <div>
+${opts.map((o,i) => isTw 
+  ? `                        <span class="${tw[i%tw.length]} px-2 py-1 rounded-full text-xs font-semibold mr-1">${escPhp(o)}</span>`
+  : `                        <span class="badge ${bs[i%bs.length]} me-1">${escPhp(o)}</span>`
+).join('\n')}
+                    </div>
+                </div>`;
+    }
+    case 'card':
+      return isTw
+        ? `<div class="${fg} border border-slate-200 rounded-xl p-4 bg-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-2xl">${escPhp(f.icon||'')}</span>
+                        <h4 class="font-bold">${escPhp(f.title||'')}</h4>
+                    </div>
+                    <p class="text-sm text-slate-600">${escPhp(f.body||'')}</p>
+                </div>`
+        : `<div class="card ${fg}">
+                    <div class="card-body">
+                        <h5 class="card-title">${escPhp(f.icon||'')} ${escPhp(f.title||'')}</h5>
+                        <p class="card-text">${escPhp(f.body||'')}</p>
+                    </div>
+                </div>`;
+    default:
+      return `<!-- Unknown field: ${f.type} -->`;
+  }
+}
+
+function readmeContent(fw) {
+  return `# ${state.appName}
+
+> Generated by **FormCraft Pro** ⚡  
+> Developed by **nikradhi**
+
+## 📋 Framework
+${fw} dengan ${state.cssFramework === 'tailwind' ? 'Tailwind CSS' : state.cssFramework === 'bootstrap4' ? 'Bootstrap 4' : 'Bootstrap 5'}
+
+## 📁 Halaman/Routes
+${state.pages.map(p => `- **${p.title}** → \`/${pascalCase(state.appName.replace(/[^a-zA-Z0-9 ]/g,'')).toLowerCase()}/${p.slug}\` (${p.fields.length} medan)`).join('\n')}
+
+## 🚀 Cara Pasang
+
+${fw.includes('CodeIgniter') ? `### CodeIgniter 3
+1. Salin folder \`application/\` ke projek CodeIgniter 3 anda
+2. Pastikan \`application/config/config.php\` ada \`$config['csrf_protection'] = TRUE;\` jika nak guna CSRF
+3. Akses melalui browser
+
+### Konfigurasi
+- Edit \`application/config/routes.php\` jika perlu
+- Edit controller di \`application/controllers/\`
+- Edit view di \`application/views/\`` : `### Laravel
+1. Salin fail-fail ke projek Laravel anda
+2. Jalankan \`php artisan route:list\` untuk pastikan routes diload
+3. Akses melalui browser
+
+### Konfigurasi
+- Edit \`routes/web.php\` jika perlu
+- Edit controller di \`app/Http/Controllers/\`
+- Edit view di \`resources/views/\``}
+
+## ⚠️ Nota Penting
+Aplikasi ini di-generate **tanpa sambungan database** - hanya UI form sahaja.
+Anda perlu tambah:
+- Sambungan database
+- Logik simpan/baca data
+- Authentication jika perlu
+
+## 📝 TODO Selepas Generate
+- [ ] Tambah database connection
+- [ ] Tambah model/migration
+- [ ] Implement logic simpan data dalam controller
+- [ ] Tambah authentication
+- [ ] Customize design ikut keperluan
+
+---
+⚡ **Developed by nikradhi** | Generated with FormCraft Pro
+`;
+}
+
+// ============ CODE MODAL ============
+function showCodeModal() {
+  document.getElementById('codeFrameworkLabel').textContent = `Framework: ${state.framework === 'codeigniter' ? 'CodeIgniter 3' : 'Laravel 10+'} • ${state.cssFramework === 'tailwind' ? 'Tailwind' : state.cssFramework === 'bootstrap4' ? 'Bootstrap 4' : 'Bootstrap 5'}`;
+  
+  const fileList = document.getElementById('fileList');
+  fileList.innerHTML = Object.keys(generatedFiles).map(f => `
+    <button onclick="showFile('${f.replace(/'/g, "\\'")}')" class="w-full text-left px-3 py-2 text-xs font-mono hover:bg-white rounded transition file-btn" data-file="${f}">
+      <span class="text-slate-400">${f.split('/').slice(0,-1).join('/')}/</span><span class="font-bold text-slate-700">${f.split('/').pop()}</span>
+    </button>
+  `).join('');
+  
+  document.getElementById('codeModal').classList.remove('hidden');
+  const first = Object.keys(generatedFiles)[0];
+  showFile(first);
+}
+
+function showFile(path) {
+  currentCodeFile = path;
+  document.getElementById('currentFile').textContent = path;
+  document.getElementById('codeView').textContent = generatedFiles[path];
+  document.querySelectorAll('.file-btn').forEach(b => {
+    b.classList.toggle('bg-white', b.dataset.file === path);
+    b.classList.toggle('shadow-sm', b.dataset.file === path);
+  });
+}
+
+function copyCurrentCode() {
+  navigator.clipboard.writeText(generatedFiles[currentCodeFile]).then(() => {
+    toast('📋 Code disalin ke clipboard');
+  });
+}
+
+function closeCode() {
+  document.getElementById('codeModal').classList.add('hidden');
+}
+
+function downloadZip() {
+  const zip = new JSZip();
+  Object.entries(generatedFiles).forEach(([path, content]) => {
+    zip.file(path, content);
+  });
+  zip.generateAsync({ type: 'blob' }).then(blob => {
+    saveAs(blob, `${state.appName.toLowerCase().replace(/\s+/g,'-')}-${state.framework}.zip`);
+    toast('⬇️ ZIP berjaya dimuat turun');
+  });
+}
+
+// ============ UTILS ============
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function escPhp(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+function pascalCase(s) {
+  return s.split(/[\s_-]+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+}
+
+function methodName(slug) {
+  return slug.replace(/-/g, '_');
+}
+
+function toast(msg, type='success') {
+  const colors = { success: 'bg-emerald-500', error: 'bg-red-500', warn: 'bg-amber-500' };
+  const t = document.createElement('div');
+  t.className = `toast ${colors[type]||colors.success} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-semibold`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// Start app
+init();
+</script>
+</body>
+</html>
